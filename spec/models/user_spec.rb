@@ -5,6 +5,10 @@ require 'rails_helper'
 RSpec.describe User, type: :model do
   subject(:user) { build(:user) }
 
+  describe 'associations' do
+    it { is_expected.to have_many(:transactions).dependent(:destroy) }
+  end
+
   describe 'validations' do
     it { is_expected.to validate_presence_of(:email) }
     it { is_expected.to validate_presence_of(:balance) }
@@ -85,6 +89,63 @@ RSpec.describe User, type: :model do
     it 'has the correct balance format' do
       expect(test_user.balance).to be_a(BigDecimal)
       expect(test_user.balance.to_s).to eq('100.5')
+    end
+  end
+
+  describe 'scopes' do
+    let(:user) { create(:user, :with_balance) }
+
+    describe '#deposit!' do
+      it 'delegates to BalanceOperationService.deposit' do
+        allow(BalanceOperationService).to receive(:deposit)
+
+        user.deposit!(50.00, description: 'Test deposit')
+        expect(BalanceOperationService).to have_received(:deposit).with(user: user, amount: 50.00, description: 'Test deposit')
+      end
+
+      it 'calls with nil description when not provided' do
+        allow(BalanceOperationService).to receive(:deposit)
+
+        user.deposit!(25.00, description: nil)
+        expect(BalanceOperationService).to have_received(:deposit).with(user: user, amount: 25.00, description: nil)
+      end
+    end
+
+    describe '#withdraw!' do
+      it 'delegates to BalanceOperationService.withdraw' do
+        allow(BalanceOperationService).to receive(:withdraw)
+
+        user.withdraw!(30.00, description: 'Test withdrawal')
+        expect(BalanceOperationService).to have_received(:withdraw).with(user: user, amount: 30.00, description: 'Test withdrawal')
+      end
+
+      it 'calls with nil description when not provided' do
+        allow(BalanceOperationService).to receive(:withdraw)
+
+        user.withdraw!(15.00, description: nil)
+        expect(BalanceOperationService).to have_received(:withdraw).with(user: user, amount: 15.00, description: nil)
+      end
+    end
+
+    describe '#transaction_history' do
+      let!(:old_transaction) { create(:transaction, user: user, created_at: 3.days.ago) }
+      let!(:recent_transaction) { create(:transaction, :withdrawal, user: user, created_at: 3.days.ago) }
+      let!(:new_user) { create(:user, email: 'new@example.com', balance: 0) }
+
+      it 'returns recent transactions with default limit' do
+        result = user.transaction_history
+        expect(result).to eq([ recent_transaction, old_transaction ])
+      end
+
+      it 'respects custom limit' do
+        result = user.transaction_history(limit: 1)
+        expect(result).to eq([ recent_transaction ])
+      end
+
+      it 'returns empty array for user with no transactions' do
+        result = new_user.transaction_history
+        expect(result).to eq([])
+      end
     end
   end
 
