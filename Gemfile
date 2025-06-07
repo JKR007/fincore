@@ -58,7 +58,6 @@ group :development, :test do
 end
 
 group :test do
-  # Test Coverage & Utilities
   gem "simplecov", "~> 0.22", require: false
   gem "shoulda-matchers", "~> 6.4"
   gem "database_cleaner-active_record", "~> 2.2"
