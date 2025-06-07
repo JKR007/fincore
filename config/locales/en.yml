@@ -38,3 +38,7 @@ en:
               invalid: "must be a valid email address"
             balance:
               greater_than_or_equal_to: "cannot be negative"
+        transaction:
+          attributes:
+            amount:
+              other_than: "cannot be zero"
