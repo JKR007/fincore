@@ -12,8 +12,6 @@ class BalanceOperationService
       error_response([ e.message ])
     rescue ActiveRecord::RecordInvalid => e
       error_response(e.record.errors.full_messages)
-    rescue StandardError => e
-      error_response([ "Failed to process deposit: #{e.message}" ])
     end
 
     def withdraw(user:, amount:, description: nil)
@@ -23,18 +21,14 @@ class BalanceOperationService
       error_response([ e.message ])
     rescue ActiveRecord::RecordInvalid => e
       error_response(e.record.errors.full_messages)
-    rescue StandardError => e
-      error_response([ "Failed to process withdrawal: #{e.message}" ])
     end
 
     def get_balance(user:)
       {
         success: true,
         balance: user.balance,
-        user: { id: user.id, email: user.email, balance: user.balance }
+        user: { email: user.email, balance: user.balance }
       }
-    rescue StandardError => e
-      error_response([ "Failed to get balance: #{e.message}" ])
     end
 
     private
@@ -129,7 +123,7 @@ class BalanceOperationService
     end
 
     def user_response_data(user)
-      { id: user.id, email: user.email, balance: user.balance }
+      { email: user.email, balance: user.balance }
     end
 
     def transaction_response_data(transaction)

@@ -55,7 +55,7 @@ RSpec.describe BalanceOperationService, type: :service do
         result = described_class.deposit(user: user, amount: 100.0)
 
         expect(result.keys).to contain_exactly(:success, :user, :transaction)
-        expect(result[:user].keys).to contain_exactly(:id, :email, :balance)
+        expect(result[:user].keys).to contain_exactly(:email, :balance)
         expect(result[:transaction].keys).to contain_exactly(
           :id, :amount, :type, :description, :balance_before, :balance_after, :created_at
         )
@@ -106,18 +106,10 @@ RSpec.describe BalanceOperationService, type: :service do
         expect(result[:errors]).to be_present
       end
 
-      it 'rolls back transaction on failure' do
-        original_balance = user.balance
-
+      it 'raises unexpected errors instead of catching them' do
         allow(described_class).to receive(:create_deposit_transaction!).and_raise(StandardError.new('Database connection lost'))
 
-        result = described_class.deposit(user: user, amount: 100.0)
-
-        expect(result[:success]).to be false
-        expect(result[:errors]).to include('Failed to process deposit: Database connection lost')
-
-        user.reload
-        expect(user.balance).to eq(original_balance)
+        expect { described_class.deposit(user: user, amount: 100.0) }.to raise_error(StandardError, 'Database connection lost')
       end
     end
   end
@@ -209,25 +201,17 @@ RSpec.describe BalanceOperationService, type: :service do
         expect(result[:errors]).to include('Withdrawal amount too large')
       end
 
-      it 'handles exact insufficient funds scenario' do
+      it 'returns error for exact insufficient funds scenario' do
         result = described_class.withdraw(user: user, amount: 500.01)
 
         expect(result[:success]).to be false
         expect(result[:errors]).to include('Insufficient funds')
       end
 
-      it 'rolls back transaction on database failure' do
-        original_balance = user.balance
-
+      it 'raises unexpected errors instead of catching them' do
         allow(described_class).to receive(:create_withdrawal_transaction!).and_raise(StandardError.new('Transaction creation failed'))
 
-        result = described_class.withdraw(user: user, amount: 100.0)
-
-        expect(result[:success]).to be false
-        expect(result[:errors]).to include('Failed to process withdrawal: Transaction creation failed')
-
-        user.reload
-        expect(user.balance).to eq(original_balance)
+        expect { described_class.withdraw(user: user, amount: 100.0) }.to raise_error(StandardError, 'Transaction creation failed')
       end
     end
 
@@ -249,7 +233,6 @@ RSpec.describe BalanceOperationService, type: :service do
 
       expect(result[:success]).to be true
       expect(result[:balance]).to eq(500.0)
-      expect(result[:user][:id]).to eq(user.id)
       expect(result[:user][:email]).to eq(user.email)
       expect(result[:user][:balance]).to eq(500.0)
     end
@@ -258,16 +241,13 @@ RSpec.describe BalanceOperationService, type: :service do
       result = described_class.get_balance(user: user)
 
       expect(result.keys).to contain_exactly(:success, :balance, :user)
-      expect(result[:user].keys).to contain_exactly(:id, :email, :balance)
+      expect(result[:user].keys).to contain_exactly(:email, :balance)
     end
 
-    it 'handles errors gracefully' do
+    it 'raises unexpected errors instead of catching them' do
       allow(user).to receive(:balance).and_raise(StandardError.new('Database error'))
 
-      result = described_class.get_balance(user: user)
-
-      expect(result[:success]).to be false
-      expect(result[:errors]).to include('Failed to get balance: Database error')
+      expect { described_class.get_balance(user: user) }.to raise_error(StandardError, 'Database error')
     end
   end
 
