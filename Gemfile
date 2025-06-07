@@ -10,7 +10,8 @@ gem "puma", ">= 5.0"
 # gem "jbuilder"
 
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
-# gem "bcrypt", "~> 3.1.7"
+gem "bcrypt", "~> 3.1.7"
+gem "jwt"
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[ windows jruby ]
@@ -31,8 +32,10 @@ gem "thruster", require: false
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
 # gem "image_processing", "~> 1.2"
 
+gem "bundler-audit"
+
 # Use Rack CORS for handling Cross-Origin Resource Sharing (CORS), making cross-origin Ajax possible
-# gem "rack-cors"
+gem "rack-cors"
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
@@ -43,4 +46,21 @@ group :development, :test do
 
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
+
+  # Additional RuboCop gems for comprehensive code quality
+  gem "rubocop-rspec", "~> 3.2", require: false
+  gem "rubocop-performance", "~> 1.23", require: false
+
+  # Testing Framework
+  gem "rspec-rails", "~> 7.1"
+  gem "factory_bot_rails", "~> 6.4"
+  gem "faker", "~> 3.5"
+end
+
+group :test do
+  gem "simplecov", "~> 0.22", require: false
+  gem "shoulda-matchers", "~> 6.4"
+  gem "database_cleaner-active_record", "~> 2.2"
+  gem "webmock", "~> 3.24"
+  gem "vcr", "~> 6.3"
 end
