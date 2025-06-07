@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module AuthenticationHelpers
   def jwt_token_for(user)
     JsonWebToken.encode(user_id: user.id, email: user.email)
