@@ -46,6 +46,7 @@ RSpec/MultipleExpectations:
 RSpec/ExampleLength:
   Max: 15
   Exclude:
+    - 'spec/controllers/api/v1/transfers_controller_spec.rb'
     - 'spec/services/transfer_service_spec.rb'
 
 Lint/RescueException:
