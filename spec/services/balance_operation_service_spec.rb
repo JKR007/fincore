@@ -98,7 +98,7 @@ RSpec.describe BalanceOperationService, type: :service do
         end
 
         it 'handles database transaction failures' do
-          allow(user).to receive(:update!).and_raise(ActiveRecord::RecordInvalid.new(user))
+          allow_any_instance_of(User).to receive(:update!).and_raise(ActiveRecord::RecordInvalid.new(user)) # rubocop:disable RSpec/AnyInstance
 
           user.errors.add(:balance, 'Database constraint violation')
 
