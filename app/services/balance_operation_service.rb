@@ -18,6 +18,16 @@ class BalanceOperationService
       end
     end
 
+    def get_balance(user:)
+      {
+        success: true,
+        balance: user.balance,
+        user: { email: user.email, balance: user.balance }
+      }
+    end
+
+    private
+
     def deposit(user:, amount:, description: nil)
       validate_amount!(amount, :deposit)
       process_deposit(user, amount, description)
@@ -35,16 +45,6 @@ class BalanceOperationService
     rescue ActiveRecord::RecordInvalid => e
       error_response(e.record.errors.full_messages)
     end
-
-    def get_balance(user:)
-      {
-        success: true,
-        balance: user.balance,
-        user: { email: user.email, balance: user.balance }
-      }
-    end
-
-    private
 
     def process_deposit(user, amount, description)
       ActiveRecord::Base.transaction do

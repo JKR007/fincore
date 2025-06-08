@@ -5,224 +5,228 @@ require 'rails_helper'
 RSpec.describe BalanceOperationService, type: :service do
   let(:user) { create(:user, balance: 500.0) }
 
-  describe '.deposit' do
-    context 'with valid parameters' do
-      it 'increases user balance and creates transaction record' do
-        result = described_class.deposit(user: user, amount: 100.50)
+  describe ".process_balance_operation" do
+    context 'when operation deposit' do
+      context 'with valid parameters' do
+        it 'increases user balance and creates transaction record' do
+          result = described_class.process_balance_operation(user: user, operation: 'deposit', amount: 100.50)
 
-        expect(result[:success]).to be true
-        expect(result[:user][:balance]).to eq(600.50)
-        expect(result[:transaction][:amount]).to eq(100.50)
-        expect(result[:transaction][:type]).to eq('deposit')
+          expect(result[:success]).to be true
+          expect(result[:user][:balance]).to eq(600.50)
+          expect(result[:transaction][:amount]).to eq(100.50)
+          expect(result[:transaction][:type]).to eq('deposit')
 
-        user.reload
-        expect(user.balance).to eq(600.50)
-        expect(user.transactions.count).to eq(1)
+          user.reload
+          expect(user.balance).to eq(600.50)
+          expect(user.transactions.count).to eq(1)
+        end
+
+        it 'creates transaction with correct audit trail' do
+          described_class.process_balance_operation(user: user, operation: 'deposit', amount: 250.75)
+          transaction = Transaction.last
+
+          expect(transaction.user).to eq(user)
+          expect(transaction.amount).to eq(250.75)
+          expect(transaction.transaction_type).to eq('deposit')
+          expect(transaction.balance_before).to eq(500.0)
+          expect(transaction.balance_after).to eq(750.75)
+          expect(transaction.description).to eq('Deposit of 250.75')
+        end
+
+        it 'uses custom description when provided' do
+          described_class.process_balance_operation(
+            user: user,
+            operation: 'deposit',
+            amount: 75.0,
+            description: 'Salary payment'
+          )
+
+          transaction = Transaction.last
+          expect(transaction.description).to eq('Salary payment')
+        end
+
+        it 'handles decimal amounts correctly' do
+          result = described_class.process_balance_operation(user: user, operation: 'deposit', amount: '123.456')
+
+          expect(result[:success]).to be true
+          user.reload
+          expect(user.balance).to eq(623.46)
+        end
+
+        it 'returns proper response structure' do
+          result = described_class.process_balance_operation(user: user, operation: 'deposit', amount: 100.0)
+
+          expect(result.keys).to contain_exactly(:success, :user, :transaction)
+          expect(result[:user].keys).to contain_exactly(:email, :balance)
+          expect(result[:transaction].keys).to contain_exactly(
+            :id, :amount, :type, :description, :balance_before, :balance_after, :created_at
+          )
+        end
       end
 
-      it 'creates transaction with correct audit trail' do
-        described_class.deposit(user: user, amount: 250.75)
-        transaction = Transaction.last
+      context 'with invalid parameters' do
+        it 'returns error for negative amount' do
+          result = described_class.process_balance_operation(user: user, operation: 'deposit', amount: -50.0)
 
-        expect(transaction.user).to eq(user)
-        expect(transaction.amount).to eq(250.75)
-        expect(transaction.transaction_type).to eq('deposit')
-        expect(transaction.balance_before).to eq(500.0)
-        expect(transaction.balance_after).to eq(750.75)
-        expect(transaction.description).to eq('Deposit of 250.75')
-      end
+          expect(result[:success]).to be false
+          expect(result[:errors]).to include('Deposit amount must be positive')
 
-      it 'uses custom description when provided' do
-        described_class.deposit(
-          user: user,
-          amount: 75.0,
-          description: 'Salary payment'
-        )
+          user.reload
+          expect(user.balance).to eq(500.0)
+          expect(user.transactions.count).to eq(0)
+        end
 
-        transaction = Transaction.last
-        expect(transaction.description).to eq('Salary payment')
-      end
+        it 'returns error for zero amount' do
+          result = described_class.process_balance_operation(user: user, operation: 'deposit', amount: 0)
 
-      it 'handles decimal amounts correctly' do
-        result = described_class.deposit(user: user, amount: '123.456')
+          expect(result[:success]).to be false
+          expect(result[:errors]).to include('Deposit amount must be positive')
+        end
 
-        expect(result[:success]).to be true
-        user.reload
-        expect(user.balance).to eq(623.46)
-      end
+        it 'returns error for nil amount' do
+          result = described_class.process_balance_operation(user: user, operation: 'deposit', amount: nil)
 
-      it 'returns proper response structure' do
-        result = described_class.deposit(user: user, amount: 100.0)
+          expect(result[:success]).to be false
+          expect(result[:errors]).to include('Deposit amount must be positive')
+        end
 
-        expect(result.keys).to contain_exactly(:success, :user, :transaction)
-        expect(result[:user].keys).to contain_exactly(:email, :balance)
-        expect(result[:transaction].keys).to contain_exactly(
-          :id, :amount, :type, :description, :balance_before, :balance_after, :created_at
-        )
-      end
-    end
+        it 'returns error for amount too large' do
+          result = described_class.process_balance_operation(user: user, operation: 'deposit', amount: 2_000_000)
 
-    context 'with invalid parameters' do
-      it 'returns error for negative amount' do
-        result = described_class.deposit(user: user, amount: -50.0)
+          expect(result[:success]).to be false
+          expect(result[:errors]).to include('Deposit amount too large')
+        end
 
-        expect(result[:success]).to be false
-        expect(result[:errors]).to include('Deposit amount must be positive')
+        it 'handles database transaction failures' do
+          allow(user).to receive(:update!).and_raise(ActiveRecord::RecordInvalid.new(user))
 
-        user.reload
-        expect(user.balance).to eq(500.0)
-        expect(user.transactions.count).to eq(0)
-      end
+          user.errors.add(:balance, 'Database constraint violation')
 
-      it 'returns error for zero amount' do
-        result = described_class.deposit(user: user, amount: 0)
+          result = described_class.process_balance_operation(user: user, operation: 'deposit', amount: 100.0)
 
-        expect(result[:success]).to be false
-        expect(result[:errors]).to include('Deposit amount must be positive')
-      end
+          expect(result[:success]).to be false
+          expect(result[:errors]).to be_present
+        end
 
-      it 'returns error for nil amount' do
-        result = described_class.deposit(user: user, amount: nil)
+        it 'raises unexpected errors instead of catching them' do
+          allow(described_class).to receive(:create_deposit_transaction!).and_raise(StandardError.new('Database connection lost'))
 
-        expect(result[:success]).to be false
-        expect(result[:errors]).to include('Deposit amount must be positive')
-      end
-
-      it 'returns error for amount too large' do
-        result = described_class.deposit(user: user, amount: 2_000_000)
-
-        expect(result[:success]).to be false
-        expect(result[:errors]).to include('Deposit amount too large')
-      end
-
-      it 'handles database transaction failures' do
-        allow(user).to receive(:update!).and_raise(ActiveRecord::RecordInvalid.new(user))
-
-        user.errors.add(:balance, 'Database constraint violation')
-
-        result = described_class.deposit(user: user, amount: 100.0)
-
-        expect(result[:success]).to be false
-        expect(result[:errors]).to be_present
-      end
-
-      it 'raises unexpected errors instead of catching them' do
-        allow(described_class).to receive(:create_deposit_transaction!).and_raise(StandardError.new('Database connection lost'))
-
-        expect { described_class.deposit(user: user, amount: 100.0) }.to raise_error(StandardError, 'Database connection lost')
-      end
-    end
-  end
-
-  describe '.withdraw' do
-    context 'with valid parameters' do
-      it 'decreases user balance and creates transaction record' do
-        result = described_class.withdraw(user: user, amount: 150.25)
-
-        expect(result[:success]).to be true
-        expect(result[:user][:balance]).to eq(349.75)
-        expect(result[:transaction][:amount]).to eq(-150.25)
-        expect(result[:transaction][:type]).to eq('withdrawal')
-
-        user.reload
-        expect(user.balance).to eq(349.75)
-        expect(user.transactions.count).to eq(1)
-      end
-
-      it 'creates transaction with correct audit trail' do
-        described_class.withdraw(user: user, amount: 200.0)
-        transaction = Transaction.last
-
-        expect(transaction.user).to eq(user)
-        expect(transaction.amount).to eq(-200.0)
-        expect(transaction.transaction_type).to eq('withdrawal')
-        expect(transaction.balance_before).to eq(500.0)
-        expect(transaction.balance_after).to eq(300.0)
-        expect(transaction.description).to eq('Withdrawal of 200.0')
-      end
-
-      it 'uses custom description when provided' do
-        described_class.withdraw(
-          user: user,
-          amount: 100.0,
-          description: 'ATM withdrawal'
-        )
-
-        transaction = Transaction.last
-        expect(transaction.description).to eq('ATM withdrawal')
-      end
-
-      it 'allows withdrawal of entire balance' do
-        result = described_class.withdraw(user: user, amount: 500.0)
-
-        expect(result[:success]).to be true
-        user.reload
-        expect(user.balance).to eq(0.0)
+          expect { described_class.process_balance_operation(user: user, operation: 'deposit', amount: 100.0) }.to raise_error(StandardError, 'Database connection lost')
+        end
       end
     end
 
-    context 'with invalid parameters' do
-      it 'returns error for insufficient funds' do
-        result = described_class.withdraw(user: user, amount: 600.0)
+    context 'when operation withdraw' do
+      context 'with valid parameters' do
+        it 'decreases user balance and creates transaction record' do
+          result = described_class.process_balance_operation(user: user, operation: 'withdraw', amount: 150.25)
 
-        expect(result[:success]).to be false
-        expect(result[:errors]).to include('Insufficient funds')
+          expect(result[:success]).to be true
+          expect(result[:user][:balance]).to eq(349.75)
+          expect(result[:transaction][:amount]).to eq(-150.25)
+          expect(result[:transaction][:type]).to eq('withdrawal')
 
-        user.reload
-        expect(user.balance).to eq(500.0)
-        expect(user.transactions.count).to eq(0)
+          user.reload
+          expect(user.balance).to eq(349.75)
+          expect(user.transactions.count).to eq(1)
+        end
+
+        it 'creates transaction with correct audit trail' do
+          described_class.process_balance_operation(user: user, operation: 'withdraw',  amount: 200.0)
+          transaction = Transaction.last
+
+          expect(transaction.user).to eq(user)
+          expect(transaction.amount).to eq(-200.0)
+          expect(transaction.transaction_type).to eq('withdrawal')
+          expect(transaction.balance_before).to eq(500.0)
+          expect(transaction.balance_after).to eq(300.0)
+          expect(transaction.description).to eq('Withdrawal of 200.0')
+        end
+
+        it 'uses custom description when provided' do
+          described_class.process_balance_operation(
+            user: user,
+            operation: 'withdraw',
+            amount: 100.0,
+            description: 'ATM withdrawal'
+          )
+
+          transaction = Transaction.last
+          expect(transaction.description).to eq('ATM withdrawal')
+        end
+
+        it 'allows withdrawal of entire balance' do
+          result = described_class.process_balance_operation(user: user, operation: 'withdraw',  amount: 500.0)
+
+          expect(result[:success]).to be true
+          user.reload
+          expect(user.balance).to eq(0.0)
+        end
       end
 
-      it 'returns error for negative amount' do
-        result = described_class.withdraw(user: user, amount: -50.0)
+      context 'with invalid parameters' do
+        it 'returns error for insufficient funds' do
+          result = described_class.process_balance_operation(user: user, operation: 'withdraw',  amount: 600.0)
 
-        expect(result[:success]).to be false
-        expect(result[:errors]).to include('Withdrawal amount must be positive')
+          expect(result[:success]).to be false
+          expect(result[:errors]).to include('Insufficient funds')
+
+          user.reload
+          expect(user.balance).to eq(500.0)
+          expect(user.transactions.count).to eq(0)
+        end
+
+        it 'returns error for negative amount' do
+          result = described_class.process_balance_operation(user: user, operation: 'withdraw',  amount: -50.0)
+
+          expect(result[:success]).to be false
+          expect(result[:errors]).to include('Withdrawal amount must be positive')
+        end
+
+        it 'returns error for zero amount' do
+          result = described_class.process_balance_operation(user: user, operation: 'withdraw',  amount: 0)
+
+          expect(result[:success]).to be false
+          expect(result[:errors]).to include('Withdrawal amount must be positive')
+        end
+
+        it 'returns error for nil amount' do
+          result = described_class.process_balance_operation(user: user, operation: 'withdraw',  amount: nil)
+
+          expect(result[:success]).to be false
+          expect(result[:errors]).to include('Withdrawal amount must be positive')
+        end
+
+        it 'returns error for amount too large' do
+          result = described_class.process_balance_operation(user: user, operation: 'withdraw',  amount: 2_000_000)
+
+          expect(result[:success]).to be false
+          expect(result[:errors]).to include('Withdrawal amount too large')
+        end
+
+        it 'returns error for exact insufficient funds scenario' do
+          result = described_class.process_balance_operation(user: user, operation: 'withdraw',  amount: 500.01)
+
+          expect(result[:success]).to be false
+          expect(result[:errors]).to include('Insufficient funds')
+        end
+
+        it 'raises unexpected errors instead of catching them' do
+          allow(described_class).to receive(:create_withdrawal_transaction!).and_raise(StandardError.new('Transaction creation failed'))
+
+          expect { described_class.process_balance_operation(user: user, operation: 'withdraw',  amount: 100.0) }.to raise_error(StandardError, 'Transaction creation failed')
+        end
       end
 
-      it 'returns error for zero amount' do
-        result = described_class.withdraw(user: user, amount: 0)
+      context 'with edge cases' do
+        let(:zero_balance_user) { create(:user, balance: 0.0) }
 
-        expect(result[:success]).to be false
-        expect(result[:errors]).to include('Withdrawal amount must be positive')
-      end
+        it 'prevents withdrawal from zero balance' do
+          result = described_class.process_balance_operation(user: zero_balance_user, operation: 'withdraw', amount: 0.01)
 
-      it 'returns error for nil amount' do
-        result = described_class.withdraw(user: user, amount: nil)
-
-        expect(result[:success]).to be false
-        expect(result[:errors]).to include('Withdrawal amount must be positive')
-      end
-
-      it 'returns error for amount too large' do
-        result = described_class.withdraw(user: user, amount: 2_000_000)
-
-        expect(result[:success]).to be false
-        expect(result[:errors]).to include('Withdrawal amount too large')
-      end
-
-      it 'returns error for exact insufficient funds scenario' do
-        result = described_class.withdraw(user: user, amount: 500.01)
-
-        expect(result[:success]).to be false
-        expect(result[:errors]).to include('Insufficient funds')
-      end
-
-      it 'raises unexpected errors instead of catching them' do
-        allow(described_class).to receive(:create_withdrawal_transaction!).and_raise(StandardError.new('Transaction creation failed'))
-
-        expect { described_class.withdraw(user: user, amount: 100.0) }.to raise_error(StandardError, 'Transaction creation failed')
-      end
-    end
-
-    context 'with edge cases' do
-      let(:zero_balance_user) { create(:user, balance: 0.0) }
-
-      it 'prevents withdrawal from zero balance' do
-        result = described_class.withdraw(user: zero_balance_user, amount: 0.01)
-
-        expect(result[:success]).to be false
-        expect(result[:errors]).to include('Insufficient funds')
+          expect(result[:success]).to be false
+          expect(result[:errors]).to include('Insufficient funds')
+        end
       end
     end
   end
@@ -321,13 +325,13 @@ RSpec.describe BalanceOperationService, type: :service do
 
   describe 'integration scenarios' do
     it 'handles multiple operations correctly' do
-      deposit_result = described_class.deposit(user: user, amount: 200.0)
+      deposit_result = described_class.process_balance_operation(user: user, operation: 'deposit', amount: 200.0)
       expect(deposit_result[:success]).to be true
 
       user.reload
       expect(user.balance).to eq(700.0)
 
-      withdraw_result = described_class.withdraw(user: user, amount: 150.0)
+      withdraw_result = described_class.process_balance_operation(user: user, operation: 'withdraw',  amount: 150.0)
       expect(withdraw_result[:success]).to be true
 
       user.reload
@@ -336,8 +340,8 @@ RSpec.describe BalanceOperationService, type: :service do
     end
 
     it 'maintains audit trail across operations' do
-      described_class.deposit(user: user, amount: 100.0)
-      described_class.withdraw(user: user, amount: 50.0)
+      described_class.process_balance_operation(user: user, operation: 'deposit', amount: 100.0)
+      described_class.process_balance_operation(user: user, operation: 'withdraw',  amount: 50.0)
 
       transactions = user.transactions.recent
 
@@ -353,8 +357,8 @@ RSpec.describe BalanceOperationService, type: :service do
     it 'handles concurrent operations safely' do
       user.balance
 
-      result1 = described_class.withdraw(user: user, amount: 300.0)
-      result2 = described_class.withdraw(user: user, amount: 300.0)
+      result1 = described_class.process_balance_operation(user: user, operation: 'withdraw',  amount: 300.0)
+      result2 = described_class.process_balance_operation(user: user, operation: 'withdraw',  amount: 300.0)
 
       expect(result1[:success]).to be true
       expect(result2[:success]).to be false

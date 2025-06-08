@@ -95,35 +95,37 @@ RSpec.describe User, type: :model do
   describe 'scopes' do
     let(:user) { create(:user, :with_balance) }
 
-    describe '#deposit!' do
-      it 'delegates to BalanceOperationService.deposit' do
-        allow(BalanceOperationService).to receive(:deposit)
+    describe "#process_balance_operation!" do
+      context 'when operation is deposit' do
+        it 'delegates to BalanceOperationService.process_balance_operation!' do
+          allow(BalanceOperationService).to receive(:process_balance_operation)
 
-        user.deposit!(50.00, description: 'Test deposit')
-        expect(BalanceOperationService).to have_received(:deposit).with(user: user, amount: 50.00, description: 'Test deposit')
+          user.process_balance_operation!('deposit', 50.00, description: 'Test deposit')
+          expect(BalanceOperationService).to have_received(:process_balance_operation).with(user: user, operation: 'deposit', amount: 50.00, description: 'Test deposit')
+        end
+
+        it 'calls with nil description when not provided' do
+          allow(BalanceOperationService).to receive(:process_balance_operation)
+
+          user.process_balance_operation!('deposit', 25.00, description: nil)
+          expect(BalanceOperationService).to have_received(:process_balance_operation).with(user: user, operation: 'deposit', amount: 25.00, description: nil)
+        end
       end
 
-      it 'calls with nil description when not provided' do
-        allow(BalanceOperationService).to receive(:deposit)
+      context 'when operation is withdraw' do
+        it 'delegates to BalanceOperationService.process_balance_operation!' do
+          allow(BalanceOperationService).to receive(:process_balance_operation)
 
-        user.deposit!(25.00, description: nil)
-        expect(BalanceOperationService).to have_received(:deposit).with(user: user, amount: 25.00, description: nil)
-      end
-    end
+          user.process_balance_operation!('withdraw!', 50.00, description: 'Test withdraw!')
+          expect(BalanceOperationService).to have_received(:process_balance_operation).with(user: user, operation: 'withdraw!', amount: 50.00, description: 'Test withdraw!')
+        end
 
-    describe '#withdraw!' do
-      it 'delegates to BalanceOperationService.withdraw' do
-        allow(BalanceOperationService).to receive(:withdraw)
+        it 'calls with nil description when not provided' do
+          allow(BalanceOperationService).to receive(:process_balance_operation)
 
-        user.withdraw!(30.00, description: 'Test withdrawal')
-        expect(BalanceOperationService).to have_received(:withdraw).with(user: user, amount: 30.00, description: 'Test withdrawal')
-      end
-
-      it 'calls with nil description when not provided' do
-        allow(BalanceOperationService).to receive(:withdraw)
-
-        user.withdraw!(15.00, description: nil)
-        expect(BalanceOperationService).to have_received(:withdraw).with(user: user, amount: 15.00, description: nil)
+          user.process_balance_operation!('withdraw!', 25.00, description: nil)
+          expect(BalanceOperationService).to have_received(:process_balance_operation).with(user: user, operation: 'withdraw!', amount: 25.00, description: nil)
+        end
       end
     end
 

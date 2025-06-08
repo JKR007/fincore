@@ -53,3 +53,6 @@ Lint/RescueException:
 
 Lint/UselessRescue:
   Enabled: false
+
+RSpec/NestedGroups:
+  Enabled: false
