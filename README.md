@@ -439,7 +439,7 @@ test: add transfer service integration tests
 ## Support
 
 For questions or issues:
-1. Check the [API Documentation](https://github.com/JKR007/fincore/blob/enhancement/readmes-docs/docs/api_documentation.md)
+1. Check the [API Documentation](./docs/api_documentation.md)
 2. Review test files for usage examples
 
 ## Acknowledgments
