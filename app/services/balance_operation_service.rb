@@ -48,33 +48,35 @@ class BalanceOperationService
 
     def process_deposit(user, amount, description)
       ActiveRecord::Base.transaction do
-        balance_before = user.balance
+        user_locked = User.lock.find(user.id)
+        balance_before = user_locked.balance
         new_balance = balance_before + amount.to_d
 
-        user.update!(balance: new_balance)
+        user_locked.update!(balance: new_balance)
 
         transaction = create_deposit_transaction!(
-          user, amount, description, balance_before, new_balance
+          user_locked, amount, description, balance_before, new_balance
         )
 
-        success_response(user, transaction)
+        success_response(user_locked, transaction)
       end
     end
 
     def process_withdrawal(user, amount, description)
       ActiveRecord::Base.transaction do
-        balance_before = user.balance
+        user_locked = User.lock.find(user.id)
+        balance_before = user_locked.balance
         new_balance = balance_before - amount.to_d
 
         raise InsufficientFundsError, "Insufficient funds" if new_balance.negative?
 
-        user.update!(balance: new_balance)
+        user_locked.update!(balance: new_balance)
 
         transaction = create_withdrawal_transaction!(
-          user, amount, description, balance_before, new_balance
+          user_locked, amount, description, balance_before, new_balance
         )
 
-        success_response(user, transaction)
+        success_response(user_locked, transaction)
       end
     end
 
