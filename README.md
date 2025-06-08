@@ -365,7 +365,74 @@ The API is versioned using URL path versioning:
 - All endpoints prefixed with `/api/v1/`
 - Future versions can be added without breaking existing clients
 
+## Continuous Integration
 
+The project uses GitHub Actions for automated testing and quality assurance. The CI pipeline runs on all pull requests and pushes to `main`.
+
+### CI Pipeline Jobs
+
+#### 1. Security Analysis
+- **Brakeman**: Static security analysis for Rails vulnerabilities
+- **Bundler Audit**: Scans for vulnerable gem dependencies
+- **Runtime**: ~20-30 seconds
+
+#### 2. Test Suite
+- **Database**: PostgreSQL 16 service container
+- **RSpec**: Full test suite execution with progress reporting
+- **Coverage**: SimpleCov report generation and artifact upload
+- **Database Setup**: Automated schema creation and migrations
+- **Runtime**: ~50-60 seconds
+
+#### 3. Code Quality (Lint)
+- **RuboCop**: Code style and convention enforcement
+- **Multiple Formats**: GitHub annotations + detailed output on failure
+- **Runtime**: ~15-20 seconds
+
+#### 4. Quality Gate
+- **Summary**: Consolidates results from all jobs
+- **Pass Criteria**: All security, test, and lint checks must pass
+- **GitHub Summary**: Provides clear ✅ / ❌ status overview
+
+### Local CI Simulation
+
+Run the same checks locally before pushing:
+
+```bash
+# Security checks (matches CI security job)
+bin/brakeman --no-pager
+bundle exec bundler-audit --update
+
+# Tests (matches CI test job)  
+bundle exec rspec --format progress
+
+# Code quality (matches CI lint job)
+bin/rubocop -f github
+bundle exec rubocop --format simple
+```
+
+### CI Configuration
+
+The CI pipeline is defined in `.github/workflows/ci.yml` and includes:
+
+- **Ruby Version**: 3.4.4 (in CI environment)
+- **PostgreSQL**: Version 16 with health checks
+- **Parallel Execution**: Security, test, and lint jobs run concurrently
+- **Artifact Storage**: Test coverage reports uploaded for review
+- **Branch Triggers**: Runs on `main` and `develop` branches
+
+### Coverage Reports
+
+Test coverage artifacts are automatically uploaded and can be downloaded from the GitHub Actions run page. The pipeline checks for coverage file generation and provides status updates.
+
+### Quality Standards
+
+All pull requests must pass:
+- **Security**: No vulnerabilities detected
+- **Tests**: test coverage, all specs passing  
+- **Lint**: RuboCop style compliance
+- **Quality Gate**: Combined status check
+
+---
 
 ## Testing
 
@@ -392,21 +459,6 @@ COVERAGE=true bundle exec rspec
 bundle exec rspec
 open coverage/index.html
 ```
-
-### Test Categories
-- **Unit Tests**: Models and services
-- **Controller Tests**: API endpoint testing
-- **Integration Tests**: End-to-end workflows
-- **Factory Tests**: Test data generation
-
-## Performance Considerations
-
-- **Database Indexes**: Optimized indexes on frequently queried fields
-- **Efficient Queries**: Proper ActiveRecord associations and query optimization
-- **Atomic Transactions**: Database transactions for consistency without performance loss
-- **JWT Tokens**: Stateless authentication for horizontal scaling
-- **Connection Pooling**: PostgreSQL connection pooling for concurrent requests
-- **Pagination**: Ready for implementation on transaction history endpoints
 
 ## Development Guidelines
 
