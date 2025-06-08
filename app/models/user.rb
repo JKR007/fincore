@@ -12,12 +12,12 @@ class User < ApplicationRecord
 
   before_validation :normalize_email
 
-  def deposit!(amount, description: nil)
-    BalanceOperationService.deposit(user: self, amount: amount, description: description)
+  def process_balance_operation!(operation, amount, description: nil)
+    BalanceOperationService.process_balance_operation(user: self, operation: operation, amount: amount, description: description)
   end
 
-  def withdraw!(amount, description: nil)
-    BalanceOperationService.withdraw(user: self, amount: amount, description: description)
+  def get_balance_info
+    BalanceOperationService.get_balance(user: self)
   end
 
   def transfer_to_email!(to_email, amount, description: nil)
