@@ -27,24 +27,27 @@ class TransferService
 
     def process_transfer(from_user, to_user, amount, description)
       ActiveRecord::Base.transaction do
-        from_balance_before = from_user.balance
-        to_balance_before = to_user.balance
+        from_user_locked = User.lock.find(from_user.id)
+        to_user_locked   = User.lock.find(to_user.id)
+
+        from_balance_before = from_user_locked.balance
+        to_balance_before = to_user_locked.balance
 
         new_from_balance = from_balance_before - amount.to_d
         new_to_balance = to_balance_before + amount.to_d
 
-        from_user.update!(balance: new_from_balance)
-        to_user.update!(balance: new_to_balance)
+        from_user_locked.update!(balance: new_from_balance)
+        to_user_locked.update!(balance: new_to_balance)
 
         from_transaction = create_transfer_out_transaction!(
-          from_user, amount, description, from_balance_before, new_from_balance, to_user
+          from_user_locked, amount, description, from_balance_before, new_from_balance, to_user_locked
         )
 
         to_transaction = create_transfer_in_transaction!(
-          to_user, amount, description, to_balance_before, new_to_balance, from_user
+          to_user_locked, amount, description, to_balance_before, new_to_balance, from_user_locked
         )
 
-        success_response(from_user, to_user, from_transaction, to_transaction)
+        success_response(from_user_locked, to_user_locked, from_transaction, to_transaction)
       end
     end
 
