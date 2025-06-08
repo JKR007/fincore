@@ -20,6 +20,10 @@ class User < ApplicationRecord
     BalanceOperationService.withdraw(user: self, amount: amount, description: description)
   end
 
+  def transfer_to_email!(to_email, amount, description: nil)
+    TransferService.transfer_by_email(from_user: self, to_email: to_email, amount: amount, description: description)
+  end
+
   def transaction_history(limit: 10)
     transactions.recent.limit(limit)
   end

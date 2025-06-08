@@ -45,6 +45,8 @@ RSpec/MultipleExpectations:
 
 RSpec/ExampleLength:
   Max: 15
+  Exclude:
+    - 'spec/services/transfer_service_spec.rb'
 
 Lint/RescueException:
   Enabled: false
