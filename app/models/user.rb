@@ -12,18 +12,6 @@ class User < ApplicationRecord
 
   before_validation :normalize_email
 
-  def process_balance_operation!(operation, amount, description: nil)
-    BalanceOperationService.process_balance_operation(user: self, operation: operation, amount: amount, description: description)
-  end
-
-  def get_balance_info
-    BalanceOperationService.get_balance(user: self)
-  end
-
-  def transfer_to_email!(to_email, amount, description: nil)
-    TransferService.transfer_by_email(from_user: self, to_email: to_email, amount: amount, description: description)
-  end
-
   def transaction_history(limit: 10)
     transactions.recent.limit(limit)
   end

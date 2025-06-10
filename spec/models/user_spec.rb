@@ -95,40 +95,6 @@ RSpec.describe User, type: :model do
   describe 'scopes' do
     let(:user) { create(:user, :with_balance) }
 
-    describe "#process_balance_operation!" do
-      context 'when operation is deposit' do
-        it 'delegates to BalanceOperationService.process_balance_operation!' do
-          allow(BalanceOperationService).to receive(:process_balance_operation)
-
-          user.process_balance_operation!('deposit', 50.00, description: 'Test deposit')
-          expect(BalanceOperationService).to have_received(:process_balance_operation).with(user: user, operation: 'deposit', amount: 50.00, description: 'Test deposit')
-        end
-
-        it 'calls with nil description when not provided' do
-          allow(BalanceOperationService).to receive(:process_balance_operation)
-
-          user.process_balance_operation!('deposit', 25.00, description: nil)
-          expect(BalanceOperationService).to have_received(:process_balance_operation).with(user: user, operation: 'deposit', amount: 25.00, description: nil)
-        end
-      end
-
-      context 'when operation is withdraw' do
-        it 'delegates to BalanceOperationService.process_balance_operation!' do
-          allow(BalanceOperationService).to receive(:process_balance_operation)
-
-          user.process_balance_operation!('withdraw!', 50.00, description: 'Test withdraw!')
-          expect(BalanceOperationService).to have_received(:process_balance_operation).with(user: user, operation: 'withdraw!', amount: 50.00, description: 'Test withdraw!')
-        end
-
-        it 'calls with nil description when not provided' do
-          allow(BalanceOperationService).to receive(:process_balance_operation)
-
-          user.process_balance_operation!('withdraw!', 25.00, description: nil)
-          expect(BalanceOperationService).to have_received(:process_balance_operation).with(user: user, operation: 'withdraw!', amount: 25.00, description: nil)
-        end
-      end
-    end
-
     describe '#transaction_history' do
       let!(:old_transaction) { create(:transaction, user: user, created_at: 3.days.ago) }
       let!(:recent_transaction) { create(:transaction, :withdrawal, user: user, created_at: 3.days.ago) }

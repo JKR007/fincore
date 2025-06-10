@@ -22,9 +22,9 @@ default: &default
 
 development:
   <<: *default
-  database: fincore_dev
-  username: fincore_dev
-  password: fincore_dev
+  database: <%= ENV.fetch("DATABASE_NAME") { "fincore_dev" } %>
+  username: <%= ENV.fetch("DATABASE_USERNAME") { "fincore_dev" } %>
+  password: <%= ENV.fetch("DATABASE_PASSWORD") { "fincore_dev" } %>
 
   # The specified database role being used to connect to PostgreSQL.
   # To create additional roles in PostgreSQL see `$ createuser --help`.
@@ -58,9 +58,9 @@ development:
 # Do not set this db to the same as development or production.
 test:
   <<: *default
-  database: fincore_test
-  username: fincore_test
-  password: fincore_test
+  database: <%= ENV.fetch("TEST_DATABASE_NAME") { "fincore_test" } %>
+  username: <%= ENV.fetch("TEST_DATABASE_USERNAME") { "fincore_test" } %>
+  password: <%= ENV.fetch("TEST_DATABASE_PASSWORD") { "fincore_test" } %>
 
 # As with config/credentials.yml, you never want to store sensitive information,
 # like your database password, in your source code. If your source code is

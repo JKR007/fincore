@@ -47,25 +47,15 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
       end
 
       before do
-        allow(sender).to receive(:transfer_to_email!).and_return(service_response)
+        allow(TransferService).to receive(:transfer_by_email).and_return(service_response)
         allow(controller).to receive(:current_user).and_return(sender)
       end
 
-      it 'calls current_user.transfer_to_email!' do
+      it 'calls TransferService.transfer_by_email' do
         post :create, params: valid_params
 
-        expect(sender).to have_received(:transfer_to_email!)
-          .with(recipient.email, 150.0, description: 'Payment for services')
-      end
-
-      it 'passes correct parameters to transfer method' do
-        post :create, params: valid_params
-
-        expect(sender).to have_received(:transfer_to_email!) do |to_email, amount, options|
-          expect(to_email).to eq(recipient.email)
-          expect(amount).to eq(150.0)
-          expect(options[:description]).to eq('Payment for services')
-        end
+        expect(TransferService).to have_received(:transfer_by_email)
+          .with(from_user: sender, to_email: recipient.email, amount: 150.0, description: 'Payment for services')
       end
 
       it 'returns 201 status on success' do
@@ -95,12 +85,12 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
 
       it 'handles transfer without description' do
         params_without_description = { transfer: { to_email: recipient.email, amount: 100.0 } }
-        allow(sender).to receive(:transfer_to_email!).and_return(service_response)
+        allow(TransferService).to receive(:transfer_by_email).and_return(service_response)
 
         post :create, params: params_without_description
 
-        expect(sender).to have_received(:transfer_to_email!)
-          .with(recipient.email, 100.0, description: nil)
+        expect(TransferService).to have_received(:transfer_by_email)
+          .with(from_user: sender, to_email: recipient.email, amount: 100.0, description: nil)
       end
     end
 
@@ -114,7 +104,7 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
       end
 
       before do
-        allow(sender).to receive(:transfer_to_email!).and_return(error_response)
+        allow(TransferService).to receive(:transfer_by_email).and_return(error_response)
         allow(controller).to receive(:current_user).and_return(sender)
       end
 
@@ -134,7 +124,7 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
       it 'handles insufficient funds' do
         insufficient_funds_params = { transfer: { to_email: recipient.email, amount: 1500.0 } }
         error_response = { success: false, errors: [ 'Insufficient funds for transfer' ] }
-        allow(sender).to receive(:transfer_to_email!).and_return(error_response)
+        allow(TransferService).to receive(:transfer_by_email).and_return(error_response)
 
         post :create, params: insufficient_funds_params
 
@@ -146,7 +136,7 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
       it 'handles invalid recipient' do
         invalid_recipient_params = { transfer: { to_email: 'invalid@example.com', amount: 100.0 } }
         error_response = { success: false, errors: [ 'Recipient user not found' ] }
-        allow(sender).to receive(:transfer_to_email!).and_return(error_response)
+        allow(TransferService).to receive(:transfer_by_email).and_return(error_response)
 
         post :create, params: invalid_recipient_params
 
@@ -158,7 +148,7 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
 
     context 'with parameter handling' do
       before do
-        allow(sender).to receive(:transfer_to_email!).and_return(success: true)
+        allow(TransferService).to receive(:transfer_by_email).and_return(success: true)
         allow(controller).to receive(:current_user).and_return(sender)
       end
 
@@ -167,8 +157,8 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
 
         post :create, params: params
 
-        expect(sender).to have_received(:transfer_to_email!)
-          .with(recipient.email, 100.0, description: 'test')
+        expect(TransferService).to have_received(:transfer_by_email)
+          .with(from_user: sender, to_email: recipient.email, amount: 100.0, description: 'test')
       end
 
       it 'permits to_email, amount, description' do
@@ -181,7 +171,7 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
       end
 
       it 'handles missing required parameters' do
-        allow(sender).to receive(:transfer_to_email!).and_raise(StandardError.new('Missing parameters'))
+        allow(TransferService).to receive(:transfer_by_email).and_raise(StandardError.new('Missing parameters'))
 
         post :create, params: { to_email: recipient.email }
 
@@ -195,8 +185,8 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
 
         post :create, params: params
 
-        expect(sender).to have_received(:transfer_to_email!)
-          .with(nil, 100.0, description: nil)
+        expect(TransferService).to have_received(:transfer_by_email)
+          .with(from_user: sender, to_email: nil, amount: 100.0, description: nil)
       end
 
       it 'handles missing amount' do
@@ -204,37 +194,39 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
 
         post :create, params: params
 
-        expect(sender).to have_received(:transfer_to_email!)
-          .with(recipient.email, nil, description: nil)
+        expect(TransferService).to have_received(:transfer_by_email)
+          .with(from_user: sender, to_email: recipient.email, amount: nil, description: nil)
       end
     end
 
     context 'with authorization' do
       it 'only allows transfers from current_user' do
         allow(controller).to receive(:current_user).and_return(sender)
-        allow(sender).to receive(:transfer_to_email!).and_return(success: true)
+        allow(TransferService).to receive(:transfer_by_email).and_return(success: true)
 
         post :create, params: { transfer: { to_email: recipient.email, amount: 100.0 } }
 
-        expect(sender).to have_received(:transfer_to_email!)
+        expect(TransferService).to have_received(:transfer_by_email)
+          .with(from_user: sender, to_email: anything, amount: anything, description: anything)
         expect(controller.instance_variable_get(:@current_user)).to eq(sender)
       end
 
       it 'cannot initiate transfers for other users' do
         other_user = create(:user, balance: 500.0)
         allow(controller).to receive(:current_user).and_return(sender)
-        allow(sender).to receive(:transfer_to_email!).and_return(success: true)
-        allow(other_user).to receive(:transfer_to_email!)
+        allow(TransferService).to receive(:transfer_by_email).and_return(success: true)
 
         post :create, params: { transfer: { to_email: recipient.email, amount: 100.0 } }
 
-        expect(sender).to have_received(:transfer_to_email!)
-        expect(other_user).not_to have_received(:transfer_to_email!)
+        expect(TransferService).to have_received(:transfer_by_email)
+          .with(from_user: sender, to_email: anything, amount: anything, description: anything)
+        expect(TransferService).not_to have_received(:transfer_by_email)
+          .with(from_user: other_user, to_email: anything, amount: anything, description: anything)
       end
 
       it 'uses authenticated user as sender' do
         allow(controller).to receive(:current_user).and_return(sender)
-        allow(sender).to receive(:transfer_to_email!).and_return(success: true)
+        allow(TransferService).to receive(:transfer_by_email).and_return(success: true)
 
         post :create, params: { transfer: { to_email: recipient.email, amount: 100.0 } }
 
@@ -246,20 +238,21 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
 
         it 'uses current_user as transfer source' do
           allow(controller).to receive(:current_user).and_return(sender)
-          allow(sender).to receive(:transfer_to_email!).and_return(success: true)
+          allow(TransferService).to receive(:transfer_by_email).and_return(success: true)
 
           post :create, params: {
             transfer: { to_email: recipient.email, amount: 100.0 },
             from_user_id: other_user.id
           }
 
-          expect(sender).to have_received(:transfer_to_email!)
+          expect(TransferService).to have_received(:transfer_by_email)
+            .with(from_user: sender, to_email: anything, amount: anything, description: anything)
           expect(controller.instance_variable_get(:@current_user)).to eq(sender)
         end
 
         it 'ignores any attempts to specify different sender' do
           allow(controller).to receive(:current_user).and_return(sender)
-          allow(sender).to receive(:transfer_to_email!).and_return(success: true)
+          allow(TransferService).to receive(:transfer_by_email).and_return(success: true)
 
           post :create, params: {
             transfer: {
@@ -269,7 +262,8 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
             }
           }
 
-          expect(sender).to have_received(:transfer_to_email!)
+          expect(TransferService).to have_received(:transfer_by_email)
+            .with(from_user: sender, to_email: anything, amount: anything, description: anything)
           expect(controller.instance_variable_get(:@current_user)).to eq(sender)
         end
       end
@@ -283,7 +277,7 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
       it 'handles self-transfer attempts' do
         params = { transfer: { to_email: sender.email, amount: 100.0 } }
         error_response = { success: false, errors: [ 'Cannot transfer to the same user' ] }
-        allow(sender).to receive(:transfer_to_email!).and_return(error_response)
+        allow(TransferService).to receive(:transfer_by_email).and_return(error_response)
 
         post :create, params: params
 
@@ -295,7 +289,7 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
       it 'handles very large amounts' do
         params = { transfer: { to_email: recipient.email, amount: 999999999.99 } }
         error_response = { success: false, errors: [ 'Transfer amount too large' ] }
-        allow(sender).to receive(:transfer_to_email!).and_return(error_response)
+        allow(TransferService).to receive(:transfer_by_email).and_return(error_response)
 
         post :create, params: params
 
@@ -304,38 +298,38 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
 
       it 'handles decimal precision' do
         params = { transfer: { to_email: recipient.email, amount: 123.456 } }
-        allow(sender).to receive(:transfer_to_email!).and_return(success: true)
+        allow(TransferService).to receive(:transfer_by_email).and_return(success: true)
 
         post :create, params: params
 
-        expect(sender).to have_received(:transfer_to_email!)
-          .with(recipient.email, 123.456, description: nil)
+        expect(TransferService).to have_received(:transfer_by_email)
+          .with(from_user: sender, to_email: recipient.email, amount: 123.456, description: nil)
       end
 
       it 'handles email normalization' do
         params = { transfer: { to_email: recipient.email.upcase, amount: 100.0 } }
-        allow(sender).to receive(:transfer_to_email!).and_return(success: true)
+        allow(TransferService).to receive(:transfer_by_email).and_return(success: true)
 
         post :create, params: params
 
-        expect(sender).to have_received(:transfer_to_email!)
-          .with(recipient.email.upcase, 100.0, description: nil)
+        expect(TransferService).to have_received(:transfer_by_email)
+          .with(from_user: sender, to_email: recipient.email.upcase, amount: 100.0, description: nil)
       end
 
       it 'handles string amounts' do
         params = { transfer: { to_email: recipient.email, amount: '150.50' } }
-        allow(sender).to receive(:transfer_to_email!).and_return(success: true)
+        allow(TransferService).to receive(:transfer_by_email).and_return(success: true)
 
         post :create, params: params
 
-        expect(sender).to have_received(:transfer_to_email!)
-          .with(recipient.email, '150.50', description: nil)
+        expect(TransferService).to have_received(:transfer_by_email)
+          .with(from_user: sender, to_email: recipient.email, amount: '150.50', description: nil)
       end
 
       it 'handles zero amounts' do
         params = { transfer: { to_email: recipient.email, amount: 0 } }
         error_response = { success: false, errors: [ 'Transfer amount must be positive' ] }
-        allow(sender).to receive(:transfer_to_email!).and_return(error_response)
+        allow(TransferService).to receive(:transfer_by_email).and_return(error_response)
 
         post :create, params: params
 
@@ -345,7 +339,7 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
       it 'handles negative amounts' do
         params = { transfer: { to_email: recipient.email, amount: -100.0 } }
         error_response = { success: false, errors: [ 'Transfer amount must be positive' ] }
-        allow(sender).to receive(:transfer_to_email!).and_return(error_response)
+        allow(TransferService).to receive(:transfer_by_email).and_return(error_response)
 
         post :create, params: params
 
@@ -358,12 +352,12 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
         allow(controller).to receive(:current_user).and_return(sender)
       end
 
-      it 'delegates to user transfer method' do
-        allow(sender).to receive(:transfer_to_email!).and_return(success: true)
+      it 'delegates to TransferService' do
+        allow(TransferService).to receive(:transfer_by_email).and_return(success: true)
 
         post :create, params: { transfer: { to_email: recipient.email, amount: 100.0 } }
 
-        expect(sender).to have_received(:transfer_to_email!)
+        expect(TransferService).to have_received(:transfer_by_email)
       end
 
       it 'handles successful transfer response' do
@@ -371,7 +365,7 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
           success: true,
           transfer: { amount: 100.0, from_user: { email: sender.email }, to_user: { email: recipient.email } }
         }
-        allow(sender).to receive(:transfer_to_email!).and_return(success_response)
+        allow(TransferService).to receive(:transfer_by_email).and_return(success_response)
 
         post :create, params: { transfer: { to_email: recipient.email, amount: 100.0 } }
         json_response = JSON.parse(response.body)
@@ -382,7 +376,7 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
 
       it 'handles failed transfer response' do
         failed_response = { success: false, errors: [ 'Transfer failed' ] }
-        allow(sender).to receive(:transfer_to_email!).and_return(failed_response)
+        allow(TransferService).to receive(:transfer_by_email).and_return(failed_response)
 
         post :create, params: { transfer: { to_email: recipient.email, amount: 100.0 } }
 
@@ -393,7 +387,7 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
 
       context 'when service raises exception' do
         before do
-          allow(sender).to receive(:transfer_to_email!).and_raise(StandardError.new('Service error'))
+          allow(TransferService).to receive(:transfer_by_email).and_raise(StandardError.new('Service error'))
         end
 
         it 'lets exception bubble up to base controller' do
@@ -412,25 +406,28 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
         allow(controller).to receive(:authenticate_request).and_call_original
       end
 
-      it 'returns 500 internal server error when current_user is nil' do
+      it 'returns 422 unprocessable content when current_user is nil' do
         post :create, params: { transfer: { to_email: recipient.email, amount: 100.0 } }
-        expect(response).to have_http_status(:internal_server_error)
+        expect(response).to have_http_status(:unprocessable_entity)
       end
 
-      it 'does not call service methods' do
-        allow(sender).to receive(:transfer_to_email!)
+      it 'calls service with nil user (service handles validation)' do
+        allow(TransferService).to receive(:transfer_by_email).and_return(
+          { success: false, errors: [ 'From user not found' ] }
+        )
 
         post :create, params: { transfer: { to_email: recipient.email, amount: 100.0 } }
 
-        expect(sender).not_to have_received(:transfer_to_email!)
+        expect(TransferService).to have_received(:transfer_by_email)
+          .with(from_user: nil, to_email: recipient.email, amount: 100.0, description: nil)
       end
 
-      it 'returns internal server error message' do
+      it 'returns validation error message from service' do
         post :create, params: { transfer: { to_email: recipient.email, amount: 100.0 } }
         json_response = JSON.parse(response.body)
 
         expect(json_response['success']).to be false
-        expect(json_response['errors']).to include('Internal server error')
+        expect(json_response['errors']).to include('From user not found')
       end
     end
   end
@@ -452,7 +449,7 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
           { id: 2, amount: 100.0, type: 'transfer_in' }
         ]
       }
-      allow(sender).to receive(:transfer_to_email!).and_return(success_response)
+      allow(TransferService).to receive(:transfer_by_email).and_return(success_response)
       allow(controller).to receive(:current_user).and_return(sender)
 
       post :create, params: { transfer: { to_email: recipient.email, amount: 100.0 } }
@@ -466,7 +463,7 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
 
     it 'maintains consistent error response structure' do
       error_response = { success: false, errors: [ 'Test error' ] }
-      allow(sender).to receive(:transfer_to_email!).and_return(error_response)
+      allow(TransferService).to receive(:transfer_by_email).and_return(error_response)
       allow(controller).to receive(:current_user).and_return(sender)
 
       post :create, params: { transfer: { to_email: 'invalid@example.com', amount: 100.0 } }
@@ -494,7 +491,7 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
           to_user: { email: recipient.email, balance: 1200.0 }
         }
       }
-      allow(sender).to receive(:transfer_to_email!).and_return(success_response)
+      allow(TransferService).to receive(:transfer_by_email).and_return(success_response)
 
       post :create, params: params
       json_response = JSON.parse(response.body)
@@ -506,7 +503,7 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
     it 'handles transfer amount exceeding balance' do
       params = { transfer: { to_email: recipient.email, amount: 1100.0 } }
       error_response = { success: false, errors: [ 'Insufficient funds for transfer' ] }
-      allow(sender).to receive(:transfer_to_email!).and_return(error_response)
+      allow(TransferService).to receive(:transfer_by_email).and_return(error_response)
 
       post :create, params: params
 
