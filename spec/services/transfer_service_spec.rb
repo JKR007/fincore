@@ -252,7 +252,7 @@ RSpec.describe TransferService, type: :service do
     end
 
     it 'handles transfer with existing balance operations' do
-      from_user.process_balance_operation!('deposit', 500.0)
+      BalanceOperationService.process_balance_operation(user: from_user, operation: 'deposit', amount: 500.0)
       from_user.reload
       expect(from_user.balance).to eq(1500.0)
 

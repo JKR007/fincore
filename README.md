@@ -127,6 +127,45 @@ rails server
 # Server will be available at http://localhost:3000
 ```
 
+## Environment Variables
+
+This application uses environment variables for database configuration to keep sensitive information secure.
+
+### Setup for Development
+
+1. **Copy the sample environment file:**
+   ```bash
+   cp .env.sample .env.development
+   ```
+
+2. **Edit the environment file if needed:**
+   ```bash
+   # .env.development
+   DATABASE_NAME=fincore_dev
+   DATABASE_USERNAME=fincore_dev
+   DATABASE_PASSWORD=fincore_dev
+   ```
+
+3. **For testing, create a test environment file:**
+   ```bash
+   cp .env.sample .env.test
+   ```
+   
+   Or manually create `.env.test` with:
+   ```bash
+   TEST_DATABASE_NAME=fincore_test
+   TEST_DATABASE_USERNAME=fincore_test
+   TEST_DATABASE_PASSWORD=fincore_test
+   ```
+
+### Environment Files Structure
+
+- **`.env.sample`** - Template file (committed to git)
+- **`.env.development`** - Development environment variables (gitignored)
+- **`.env.test`** - Test environment variables (gitignored)
+- **`.env.production`** - Production environment variables (gitignored)
+
+
 ## API Overview
 
 ### Base URL

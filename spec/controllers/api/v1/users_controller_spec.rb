@@ -17,14 +17,15 @@ RSpec.describe Api::V1::UsersController, type: :controller do
 
       before do
         authenticate_as(user)
-        allow(user).to receive(:get_balance_info).and_return(service_response)
+        allow(BalanceOperationService).to receive(:get_balance).and_return(service_response)
         allow(controller).to receive(:current_user).and_return(user)
       end
 
-      it 'calls current_user.get_balance_info' do
+      it 'calls BalanceOperationService.get_balance' do
         get :balance
 
-        expect(user).to have_received(:get_balance_info)
+        expect(BalanceOperationService).to have_received(:get_balance)
+          .with(user: user)
       end
 
       it 'returns 200 status' do
@@ -70,18 +71,18 @@ RSpec.describe Api::V1::UsersController, type: :controller do
     context 'with service integration' do
       before { authenticate_as(user) }
 
-      it 'delegates to user service method' do
-        allow(user).to receive(:get_balance_info).and_return(success: true, balance: 500.0)
+      it 'delegates to BalanceOperationService' do
+        allow(BalanceOperationService).to receive(:get_balance).and_return(success: true, balance: 500.0)
         allow(controller).to receive(:current_user).and_return(user)
 
         get :balance
 
-        expect(user).to have_received(:get_balance_info)
+        expect(BalanceOperationService).to have_received(:get_balance).with(user: user)
       end
 
       it 'handles service success response' do
         service_response = { success: true, balance: 750.0, user: { email: user.email, balance: 750.0 } }
-        allow(user).to receive(:get_balance_info).and_return(service_response)
+        allow(BalanceOperationService).to receive(:get_balance).and_return(service_response)
         allow(controller).to receive(:current_user).and_return(user)
 
         get :balance
@@ -92,7 +93,7 @@ RSpec.describe Api::V1::UsersController, type: :controller do
 
       it 'handles service error response' do
         service_response = { success: false, errors: [ 'Database error' ] }
-        allow(user).to receive(:get_balance_info).and_return(service_response)
+        allow(BalanceOperationService).to receive(:get_balance).and_return(service_response)
         allow(controller).to receive(:current_user).and_return(user)
 
         get :balance
@@ -107,7 +108,7 @@ RSpec.describe Api::V1::UsersController, type: :controller do
       it 'handles zero balance user' do
         zero_balance_user = create(:user, balance: 0.0)
         service_response = { success: true, balance: 0.0, user: { email: zero_balance_user.email, balance: 0.0 } }
-        allow(zero_balance_user).to receive(:get_balance_info).and_return(service_response)
+        allow(BalanceOperationService).to receive(:get_balance).and_return(service_response)
         allow(controller).to receive(:current_user).and_return(zero_balance_user)
 
         get :balance
@@ -119,7 +120,7 @@ RSpec.describe Api::V1::UsersController, type: :controller do
       it 'handles very large balance' do
         large_balance = 999999999.99
         service_response = { success: true, balance: large_balance, user: { email: user.email, balance: large_balance } }
-        allow(user).to receive(:get_balance_info).and_return(service_response)
+        allow(BalanceOperationService).to receive(:get_balance).and_return(service_response)
         allow(controller).to receive(:current_user).and_return(user)
 
         get :balance
@@ -155,25 +156,15 @@ RSpec.describe Api::V1::UsersController, type: :controller do
       end
 
       before do
-        allow(user).to receive(:process_balance_operation!).and_return(service_response)
+        allow(BalanceOperationService).to receive(:process_balance_operation).and_return(service_response)
         allow(controller).to receive(:current_user).and_return(user)
       end
 
-      it 'calls current_user.process_balance_operation!' do
+      it 'calls BalanceOperationService.process_balance_operation' do
         patch :update_balance, params: valid_params
 
-        expect(user).to have_received(:process_balance_operation!)
-          .with('deposit', 100.0, description: 'Test deposit')
-      end
-
-      it 'passes correct parameters to service' do
-        patch :update_balance, params: valid_params
-
-        expect(user).to have_received(:process_balance_operation!) do |operation, amount, options|
-          expect(operation).to eq('deposit')
-          expect(amount).to eq(100.0)
-          expect(options[:description]).to eq('Test deposit')
-        end
+        expect(BalanceOperationService).to have_received(:process_balance_operation)
+          .with(user: user, operation: 'deposit', amount: 100.0, description: 'Test deposit')
       end
 
       it 'returns 200 status on success' do
@@ -213,21 +204,21 @@ RSpec.describe Api::V1::UsersController, type: :controller do
       end
 
       before do
-        allow(user).to receive(:process_balance_operation!).and_return(service_response)
+        allow(BalanceOperationService).to receive(:process_balance_operation).and_return(service_response)
         allow(controller).to receive(:current_user).and_return(user)
       end
 
       it 'processes withdrawal correctly' do
         patch :update_balance, params: valid_params
 
-        expect(user).to have_received(:process_balance_operation!)
-          .with('withdraw', 50.0, description: nil)
+        expect(BalanceOperationService).to have_received(:process_balance_operation)
+          .with(user: user, operation: 'withdraw', amount: 50.0, description: nil)
       end
 
       it 'handles insufficient funds error' do
         insufficient_funds_params = { balance: { operation: 'withdraw', amount: 600.0 } }
         error_response = { success: false, errors: [ 'Insufficient funds' ] }
-        allow(user).to receive(:process_balance_operation!).and_return(error_response)
+        allow(BalanceOperationService).to receive(:process_balance_operation).and_return(error_response)
 
         patch :update_balance, params: insufficient_funds_params
 
@@ -247,7 +238,7 @@ RSpec.describe Api::V1::UsersController, type: :controller do
       end
 
       before do
-        allow(user).to receive(:process_balance_operation!).and_return(error_response)
+        allow(BalanceOperationService).to receive(:process_balance_operation).and_return(error_response)
         allow(controller).to receive(:current_user).and_return(user)
       end
 
@@ -267,7 +258,7 @@ RSpec.describe Api::V1::UsersController, type: :controller do
 
     context 'with parameter handling' do
       before do
-        allow(user).to receive(:process_balance_operation!).and_return(success: true)
+        allow(BalanceOperationService).to receive(:process_balance_operation).and_return(success: true)
         allow(controller).to receive(:current_user).and_return(user)
       end
 
@@ -276,8 +267,8 @@ RSpec.describe Api::V1::UsersController, type: :controller do
 
         patch :update_balance, params: params
 
-        expect(user).to have_received(:process_balance_operation!)
-          .with('deposit', 100.0, description: 'test')
+        expect(BalanceOperationService).to have_received(:process_balance_operation)
+          .with(user: user, operation: 'deposit', amount: 100.0, description: 'test')
       end
 
       it 'permits operation, amount, description' do
@@ -302,8 +293,8 @@ RSpec.describe Api::V1::UsersController, type: :controller do
 
         patch :update_balance, params: params
 
-        expect(user).to have_received(:process_balance_operation!)
-          .with('deposit', 100.0, description: nil)
+        expect(BalanceOperationService).to have_received(:process_balance_operation)
+          .with(user: user, operation: 'deposit', amount: 100.0, description: nil)
       end
     end
 
@@ -312,28 +303,30 @@ RSpec.describe Api::V1::UsersController, type: :controller do
 
       it 'only updates current_user balance' do
         allow(controller).to receive(:current_user).and_return(user)
-        allow(user).to receive(:process_balance_operation!).and_return(success: true)
+        allow(BalanceOperationService).to receive(:process_balance_operation).and_return(success: true)
 
         patch :update_balance, params: { balance: { operation: 'deposit', amount: 100.0 } }
 
-        expect(user).to have_received(:process_balance_operation!)
+        expect(BalanceOperationService).to have_received(:process_balance_operation)
+          .with(user: user, operation: anything, amount: anything, description: anything)
         expect(controller.instance_variable_get(:@current_user)).to eq(user)
       end
 
       it 'cannot update other user balance' do
         allow(controller).to receive(:current_user).and_return(user)
-        allow(user).to receive(:process_balance_operation!).and_return(success: true)
-        allow(other_user).to receive(:process_balance_operation!)
+        allow(BalanceOperationService).to receive(:process_balance_operation).and_return(success: true)
 
         patch :update_balance, params: { balance: { operation: 'deposit', amount: 100.0 } }
 
-        expect(user).to have_received(:process_balance_operation!)
-        expect(other_user).not_to have_received(:process_balance_operation!)
+        expect(BalanceOperationService).to have_received(:process_balance_operation)
+          .with(user: user, operation: anything, amount: anything, description: anything)
+        expect(BalanceOperationService).not_to have_received(:process_balance_operation)
+          .with(user: other_user, operation: anything, amount: anything, description: anything)
       end
 
       it 'uses authenticated user context' do
         allow(controller).to receive(:current_user).and_return(user)
-        allow(user).to receive(:process_balance_operation!).and_return(success: true)
+        allow(BalanceOperationService).to receive(:process_balance_operation).and_return(success: true)
 
         patch :update_balance, params: { balance: { operation: 'deposit', amount: 100.0 } }
 
@@ -343,14 +336,15 @@ RSpec.describe Api::V1::UsersController, type: :controller do
       context 'when user A tries to update user B balance' do
         it 'always uses current_user regardless of any parameter manipulation' do
           allow(controller).to receive(:current_user).and_return(user)
-          allow(user).to receive(:process_balance_operation!).and_return(success: true)
+          allow(BalanceOperationService).to receive(:process_balance_operation).and_return(success: true)
 
           patch :update_balance, params: {
             balance: { operation: 'deposit', amount: 100.0 },
             user_id: other_user.id
           }
 
-          expect(user).to have_received(:process_balance_operation!)
+          expect(BalanceOperationService).to have_received(:process_balance_operation)
+            .with(user: user, operation: anything, amount: anything, description: anything)
           expect(controller.instance_variable_get(:@current_user)).to eq(user)
         end
       end
@@ -364,7 +358,7 @@ RSpec.describe Api::V1::UsersController, type: :controller do
       it 'handles zero amounts' do
         params = { balance: { operation: 'deposit', amount: 0 } }
         error_response = { success: false, errors: [ 'Deposit amount must be positive' ] }
-        allow(user).to receive(:process_balance_operation!).and_return(error_response)
+        allow(BalanceOperationService).to receive(:process_balance_operation).and_return(error_response)
 
         patch :update_balance, params: params
 
@@ -374,7 +368,7 @@ RSpec.describe Api::V1::UsersController, type: :controller do
       it 'handles very large amounts' do
         params = { balance: { operation: 'deposit', amount: 999999999.99 } }
         error_response = { success: false, errors: [ 'Deposit amount too large' ] }
-        allow(user).to receive(:process_balance_operation!).and_return(error_response)
+        allow(BalanceOperationService).to receive(:process_balance_operation).and_return(error_response)
 
         patch :update_balance, params: params
 
@@ -383,7 +377,7 @@ RSpec.describe Api::V1::UsersController, type: :controller do
 
       it 'handles service exceptions' do
         params = { balance: { operation: 'deposit', amount: 100.0 } }
-        allow(user).to receive(:process_balance_operation!).and_raise(StandardError.new('Service error'))
+        allow(BalanceOperationService).to receive(:process_balance_operation).and_raise(StandardError.new('Service error'))
 
         patch :update_balance, params: params
 
@@ -395,22 +389,22 @@ RSpec.describe Api::V1::UsersController, type: :controller do
       it 'handles decimal precision' do
         params = { balance: { operation: 'deposit', amount: 123.456 } }
         service_response = { success: true, user: { email: user.email, balance: 623.46 } }
-        allow(user).to receive(:process_balance_operation!).and_return(service_response)
+        allow(BalanceOperationService).to receive(:process_balance_operation).and_return(service_response)
 
         patch :update_balance, params: params
 
-        expect(user).to have_received(:process_balance_operation!)
-          .with('deposit', 123.456, description: nil)
+        expect(BalanceOperationService).to have_received(:process_balance_operation)
+          .with(user: user, operation: 'deposit', amount: 123.456, description: nil)
       end
 
       it 'handles string amounts' do
         params = { balance: { operation: 'deposit', amount: '100.50' } }
-        allow(user).to receive(:process_balance_operation!).and_return(success: true)
+        allow(BalanceOperationService).to receive(:process_balance_operation).and_return(success: true)
 
         patch :update_balance, params: params
 
-        expect(user).to have_received(:process_balance_operation!)
-          .with('deposit', '100.50', description: nil)
+        expect(BalanceOperationService).to have_received(:process_balance_operation)
+          .with(user: user, operation: 'deposit', amount: '100.50', description: nil)
       end
     end
 
@@ -420,16 +414,28 @@ RSpec.describe Api::V1::UsersController, type: :controller do
         allow(controller).to receive(:authenticate_request).and_call_original
       end
 
-      it 'returns 500 internal server error when current_user is nil' do
+      it 'returns 422 unprocessable content when current_user is nil' do
         patch :update_balance, params: { balance: { operation: 'deposit', amount: 100.0 } }
-        expect(response).to have_http_status(:internal_server_error)
+        expect(response).to have_http_status(:unprocessable_entity)
       end
 
-      it 'does not call service methods' do
-        allow(user).to receive(:process_balance_operation!)
+      it 'calls service with nil user (service handles validation)' do
+        allow(BalanceOperationService).to receive(:process_balance_operation).and_return(
+          { success: false, errors: [ 'User not found' ] }
+        )
+
         patch :update_balance, params: { balance: { operation: 'deposit', amount: 100.0 } }
 
-        expect(user).not_to have_received(:process_balance_operation!)
+        expect(BalanceOperationService).to have_received(:process_balance_operation)
+          .with(user: nil, operation: 'deposit', amount: 100.0, description: nil)
+      end
+
+      it 'returns validation error message from service' do
+        patch :update_balance, params: { balance: { operation: 'deposit', amount: 100.0 } }
+        json_response = JSON.parse(response.body)
+
+        expect(json_response['success']).to be false
+        expect(json_response['errors']).to be_an(Array)
       end
     end
   end
@@ -439,7 +445,7 @@ RSpec.describe Api::V1::UsersController, type: :controller do
 
     it 'maintains consistent success response structure for balance' do
       service_response = { success: true, balance: 500.0, user: { email: user.email, balance: 500.0 } }
-      allow(user).to receive(:get_balance_info).and_return(service_response)
+      allow(BalanceOperationService).to receive(:get_balance).and_return(service_response)
       allow(controller).to receive(:current_user).and_return(user)
 
       get :balance
@@ -456,7 +462,7 @@ RSpec.describe Api::V1::UsersController, type: :controller do
         user: { email: user.email, balance: 600.0 },
         transaction: { id: 1, amount: 100.0, type: 'deposit' }
       }
-      allow(user).to receive(:process_balance_operation!).and_return(service_response)
+      allow(BalanceOperationService).to receive(:process_balance_operation).and_return(service_response)
       allow(controller).to receive(:current_user).and_return(user)
 
       patch :update_balance, params: { balance: { operation: 'deposit', amount: 100.0 } }
@@ -469,7 +475,7 @@ RSpec.describe Api::V1::UsersController, type: :controller do
 
     it 'maintains consistent error response structure' do
       error_response = { success: false, errors: [ 'Test error' ] }
-      allow(user).to receive(:process_balance_operation!).and_return(error_response)
+      allow(BalanceOperationService).to receive(:process_balance_operation).and_return(error_response)
       allow(controller).to receive(:current_user).and_return(user)
 
       patch :update_balance, params: { balance: { operation: 'invalid', amount: 100.0 } }
