@@ -200,6 +200,12 @@ curl -X POST http://localhost:3000/api/v1/auth/register \
   -d '{"user": {"email": "alice@example.com", "initial_balance": 1000.0}}'
 ```
 
+```bash
+curl -X POST http://localhost:3000/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"user": {"email": "bob@example.com", "initial_balance": 0.0}}'
+```
+
 ### 2. Login and Get Token
 ```bash
 curl -X POST http://localhost:3000/api/v1/auth/login \
