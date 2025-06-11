@@ -2,7 +2,7 @@
 
 module Api
   module V1
-    class UsersController < BaseController
+    class UsersController < Api::BaseController
       def balance
         result = BalanceOperationService.get_balance(user: current_user)
         render_result(result, :ok, :internal_server_error)
