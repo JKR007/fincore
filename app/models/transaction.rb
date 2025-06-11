@@ -23,8 +23,4 @@ class Transaction < ApplicationRecord
   def transfer?
     %w[transfer_in transfer_out].include?(transaction_type)
   end
-
-  def formatted_amount
-    amount.to_f
-  end
 end

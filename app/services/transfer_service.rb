@@ -102,7 +102,7 @@ class TransferService
       {
         success: true,
         transfer: {
-          amount: from_transaction.formatted_amount.abs,
+          amount: from_transaction.amount.abs,
           from_user: user_response_data(from_user),
           to_user: user_response_data(to_user),
           description: from_transaction.description
@@ -121,7 +121,7 @@ class TransferService
     def transaction_response_data(transaction)
       {
         id: transaction.id,
-        amount: transaction.formatted_amount,
+        amount: transaction.amount,
         type: transaction.transaction_type,
         description: transaction.description,
         balance_before: transaction.balance_before.to_f,

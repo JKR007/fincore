@@ -73,12 +73,5 @@ RSpec.describe Transaction, type: :model do
         expect(transfer_transaction.transfer?).to be true
       end
     end
-
-    describe '#formatted_amount' do
-      it 'returns amount as float' do
-        transaction.amount = 123.45
-        expect(transaction.formatted_amount).to eq(123.45)
-      end
-    end
   end
 end

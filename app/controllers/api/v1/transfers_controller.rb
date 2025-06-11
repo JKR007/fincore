@@ -2,7 +2,7 @@
 
 module Api
   module V1
-    class TransfersController < BaseController
+    class TransfersController < Api::BaseController
       def create
         result = TransferService.transfer_by_email(from_user: current_user, **transfer_params)
         render_result(result, :created, :unprocessable_entity)
@@ -10,9 +10,12 @@ module Api
 
       private
 
+      def permitted_params
+        params.require(:transfer).permit(:to_email, :amount, :description).to_h.symbolize_keys
+      end
+
       def transfer_params
-        permitted = params.require(:transfer).permit(:to_email, :amount, :description)
-        { to_email: permitted[:to_email], amount: permitted[:amount], description: permitted[:description] }
+        { to_email: permitted_params[:to_email], amount: permitted_params[:amount], description: permitted_params[:description] }
       end
     end
   end

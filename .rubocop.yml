@@ -57,3 +57,6 @@ Lint/UselessRescue:
 
 RSpec/NestedGroups:
   Enabled: false
+
+Lint/UselessMethodDefinition:
+  Enabled: true
