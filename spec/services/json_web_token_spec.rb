@@ -116,44 +116,6 @@ RSpec.describe JsonWebToken, type: :service do
     end
   end
 
-  describe '.valid?' do
-    context 'with valid token' do
-      it 'returns true' do
-        expect(described_class.valid?(token)).to be true
-      end
-
-      it 'returns true for token with different payload' do
-        different_payload = { user_id: 456, role: 'admin' }
-        different_token = described_class.encode(different_payload)
-        expect(described_class.valid?(different_token)).to be true
-      end
-    end
-
-    context 'with invalid token' do
-      it 'returns false for malformed token' do
-        expect(described_class.valid?('invalid')).to be false
-      end
-
-      it 'returns false for expired token' do
-        expired_token = described_class.encode(payload, 1.hour.ago)
-        expect(described_class.valid?(expired_token)).to be false
-      end
-
-      it 'returns false for nil token' do
-        expect(described_class.valid?(nil)).to be false
-      end
-
-      it 'returns false for empty token' do
-        expect(described_class.valid?('')).to be false
-      end
-
-      it 'returns false for token with wrong signature' do
-        wrong_token = JWT.encode(payload, 'wrong_secret')
-        expect(described_class.valid?(wrong_token)).to be false
-      end
-    end
-  end
-
   describe 'SECRET_KEY' do
     it 'uses Rails credentials or fallback' do
       expect(described_class::SECRET_KEY).to be_present

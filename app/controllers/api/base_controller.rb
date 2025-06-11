@@ -14,14 +14,12 @@ module Api
 
     def authenticate_request
       header = request.headers["Authorization"]
-      token = header.split.last if header&.start_with?("Bearer ")
-
-      return render_unauthorized unless token
+      token = header.split.last if header
 
       begin
         decoded = JsonWebToken.decode(token)
         @current_user = User.find(decoded[:user_id])
-      rescue ActiveRecord::RecordNotFound, JWT::DecodeError
+      rescue ActiveRecord::RecordNotFound, JWT::DecodeError, JsonWebToken::InvalidTokenError, JsonWebToken::ExpiredTokenError, JsonWebToken::MissingTokenError
         render_unauthorized
       end
     end

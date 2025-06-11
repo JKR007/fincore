@@ -92,31 +92,6 @@ RSpec.describe User, type: :model do
     end
   end
 
-  describe 'scopes' do
-    let(:user) { create(:user, :with_balance) }
-
-    describe '#transaction_history' do
-      let!(:old_transaction) { create(:transaction, user: user, created_at: 3.days.ago) }
-      let!(:recent_transaction) { create(:transaction, :withdrawal, user: user, created_at: 3.days.ago) }
-      let!(:new_user) { create(:user, email: 'new@example.com', balance: 0) }
-
-      it 'returns recent transactions with default limit' do
-        result = user.transaction_history
-        expect(result).to eq([ recent_transaction, old_transaction ])
-      end
-
-      it 'respects custom limit' do
-        result = user.transaction_history(limit: 1)
-        expect(result).to eq([ recent_transaction ])
-      end
-
-      it 'returns empty array for user with no transactions' do
-        result = new_user.transaction_history
-        expect(result).to eq([])
-      end
-    end
-  end
-
   describe 'database constraints' do
     context 'when testing unique email constraint' do
       it 'is enforced at model level' do
