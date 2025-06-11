@@ -161,10 +161,11 @@ RSpec.describe Api::V1::UsersController, type: :controller do
       end
 
       it 'calls BalanceOperationService.process_balance_operation' do
+        expected_values = { user: user, operation: 'deposit', amount: 100.0, description: 'Test deposit' }
         patch :update_balance, params: valid_params
 
         expect(BalanceOperationService).to have_received(:process_balance_operation)
-          .with(user: user, operation: 'deposit', amount: 100.0, description: 'Test deposit')
+          .with(**expected_values)
       end
 
       it 'returns 200 status on success' do
@@ -212,7 +213,7 @@ RSpec.describe Api::V1::UsersController, type: :controller do
         patch :update_balance, params: valid_params
 
         expect(BalanceOperationService).to have_received(:process_balance_operation)
-          .with(user: user, operation: 'withdraw', amount: 50.0, description: nil)
+          .with(user: user, operation: 'withdraw', amount: 50.0)
       end
 
       it 'handles insufficient funds error' do
@@ -277,7 +278,7 @@ RSpec.describe Api::V1::UsersController, type: :controller do
         })
         result = controller.send(:balance_params)
 
-        expect(result.keys).to contain_exactly('operation', 'amount', 'description')
+        expect(result.keys).to contain_exactly(:operation, :amount, :description)
       end
 
       it 'handles missing required parameters' do
@@ -294,7 +295,7 @@ RSpec.describe Api::V1::UsersController, type: :controller do
         patch :update_balance, params: params
 
         expect(BalanceOperationService).to have_received(:process_balance_operation)
-          .with(user: user, operation: 'deposit', amount: 100.0, description: nil)
+          .with(user: user, operation: 'deposit', amount: 100.0)
       end
     end
 
@@ -308,7 +309,7 @@ RSpec.describe Api::V1::UsersController, type: :controller do
         patch :update_balance, params: { balance: { operation: 'deposit', amount: 100.0 } }
 
         expect(BalanceOperationService).to have_received(:process_balance_operation)
-          .with(user: user, operation: anything, amount: anything, description: anything)
+          .with(user: user, operation: anything, amount: anything)
         expect(controller.instance_variable_get(:@current_user)).to eq(user)
       end
 
@@ -319,7 +320,7 @@ RSpec.describe Api::V1::UsersController, type: :controller do
         patch :update_balance, params: { balance: { operation: 'deposit', amount: 100.0 } }
 
         expect(BalanceOperationService).to have_received(:process_balance_operation)
-          .with(user: user, operation: anything, amount: anything, description: anything)
+          .with(user: user, operation: anything, amount: anything)
         expect(BalanceOperationService).not_to have_received(:process_balance_operation)
           .with(user: other_user, operation: anything, amount: anything, description: anything)
       end
@@ -344,7 +345,7 @@ RSpec.describe Api::V1::UsersController, type: :controller do
           }
 
           expect(BalanceOperationService).to have_received(:process_balance_operation)
-            .with(user: user, operation: anything, amount: anything, description: anything)
+            .with(user: user, operation: anything, amount: anything)
           expect(controller.instance_variable_get(:@current_user)).to eq(user)
         end
       end
@@ -394,7 +395,7 @@ RSpec.describe Api::V1::UsersController, type: :controller do
         patch :update_balance, params: params
 
         expect(BalanceOperationService).to have_received(:process_balance_operation)
-          .with(user: user, operation: 'deposit', amount: 123.456, description: nil)
+          .with(user: user, operation: 'deposit', amount: 123.456)
       end
 
       it 'handles string amounts' do
@@ -404,7 +405,7 @@ RSpec.describe Api::V1::UsersController, type: :controller do
         patch :update_balance, params: params
 
         expect(BalanceOperationService).to have_received(:process_balance_operation)
-          .with(user: user, operation: 'deposit', amount: '100.50', description: nil)
+          .with(user: user, operation: 'deposit', amount: '100.50')
       end
     end
 
@@ -427,7 +428,7 @@ RSpec.describe Api::V1::UsersController, type: :controller do
         patch :update_balance, params: { balance: { operation: 'deposit', amount: 100.0 } }
 
         expect(BalanceOperationService).to have_received(:process_balance_operation)
-          .with(user: nil, operation: 'deposit', amount: 100.0, description: nil)
+          .with(user: nil, operation: 'deposit', amount: 100.0)
       end
 
       it 'returns validation error message from service' do

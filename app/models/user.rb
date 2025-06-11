@@ -12,10 +12,6 @@ class User < ApplicationRecord
 
   before_validation :normalize_email
 
-  def transaction_history(limit: 10)
-    transactions.recent.limit(limit)
-  end
-
   private
 
   def normalize_email

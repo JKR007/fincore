@@ -14,14 +14,12 @@ module Api
 
     def authenticate_request
       header = request.headers["Authorization"]
-      token = header.split.last if header&.start_with?("Bearer ")
-
-      return render_unauthorized unless token
+      token = header.split.last if header
 
       begin
         decoded = JsonWebToken.decode(token)
         @current_user = User.find(decoded[:user_id])
-      rescue ActiveRecord::RecordNotFound, JWT::DecodeError
+      rescue ActiveRecord::RecordNotFound, JWT::DecodeError, JsonWebToken::InvalidTokenError, JsonWebToken::ExpiredTokenError, JsonWebToken::MissingTokenError
         render_unauthorized
       end
     end
@@ -38,13 +36,18 @@ module Api
       render json: { success: false, errors: exception.record.errors.full_messages }, status: :unprocessable_entity
     end
 
-    def internal_server_error(_exception)
+    def internal_server_error(exception)
+      log_error(exception, "Internal server error")
       render json: { success: false, errors: [ "Internal server error" ] }, status: :internal_server_error
     end
 
     def render_result(result, success_status, error_status)
       status = result[:success] ? success_status : error_status
       render json: result, status: status
+    end
+
+    def log_error(error, context)
+      Rails.logger.error({ message: "#{context}: #{error.message}", error_class: error.class.name, backtrace: error.backtrace&.first(5)  }.to_json)
     end
   end
 end

@@ -144,7 +144,7 @@ class BalanceOperationService
     def transaction_response_data(transaction)
       {
         id: transaction.id,
-        amount: transaction.formatted_amount,
+        amount: transaction.amount,
         type: transaction.transaction_type,
         description: transaction.description,
         balance_before: transaction.balance_before.to_f,

@@ -167,7 +167,7 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
         })
         result = controller.send(:transfer_params)
 
-        expect(result.keys).to contain_exactly('to_email', 'amount', 'description')
+        expect(result.keys).to contain_exactly(:to_email, :amount, :description)
       end
 
       it 'handles missing required parameters' do

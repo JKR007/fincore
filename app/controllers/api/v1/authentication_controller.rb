@@ -2,8 +2,8 @@
 
 module Api
   module V1
-    class AuthenticationController < BaseController
-      skip_before_action :authenticate_request, only: %i[create login]
+    class AuthenticationController < Api::BaseController
+      skip_before_action :authenticate_request
 
       def create
         result = AuthenticationService.register(**registration_params)
