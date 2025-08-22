@@ -110,7 +110,7 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
 
       it 'returns 422 status on validation error' do
         post :create, params: invalid_params
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
 
       it 'returns service error messages' do
@@ -128,7 +128,7 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
 
         post :create, params: insufficient_funds_params
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         json_response = JSON.parse(response.body)
         expect(json_response['errors']).to include('Insufficient funds for transfer')
       end
@@ -140,7 +140,7 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
 
         post :create, params: invalid_recipient_params
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         json_response = JSON.parse(response.body)
         expect(json_response['errors']).to include('Recipient user not found')
       end
@@ -281,7 +281,7 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
 
         post :create, params: params
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         json_response = JSON.parse(response.body)
         expect(json_response['errors']).to include('Cannot transfer to the same user')
       end
@@ -293,7 +293,7 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
 
         post :create, params: params
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
 
       it 'handles decimal precision' do
@@ -333,7 +333,7 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
 
         post :create, params: params
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
 
       it 'handles negative amounts' do
@@ -343,7 +343,7 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
 
         post :create, params: params
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
     end
 
@@ -380,7 +380,7 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
 
         post :create, params: { transfer: { to_email: recipient.email, amount: 100.0 } }
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         json_response = JSON.parse(response.body)
         expect(json_response['success']).to be false
       end
@@ -408,7 +408,7 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
 
       it 'returns 422 unprocessable content when current_user is nil' do
         post :create, params: { transfer: { to_email: recipient.email, amount: 100.0 } }
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
 
       it 'calls service with nil user (service handles validation)' do
@@ -507,7 +507,7 @@ RSpec.describe Api::V1::TransfersController, type: :controller do
 
       post :create, params: params
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       json_response = JSON.parse(response.body)
       expect(json_response['errors']).to include('Insufficient funds for transfer')
     end
