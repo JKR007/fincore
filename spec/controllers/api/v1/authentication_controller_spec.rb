@@ -74,7 +74,7 @@ RSpec.describe Api::V1::AuthenticationController, type: :controller do
 
       it 'returns 422 status on validation error' do
         post :create, params: invalid_params
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
 
       it 'returns error messages' do
@@ -148,7 +148,7 @@ RSpec.describe Api::V1::AuthenticationController, type: :controller do
         allow(AuthenticationService).to receive(:register).and_return(error_response)
 
         post :create, params: params
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
     end
   end

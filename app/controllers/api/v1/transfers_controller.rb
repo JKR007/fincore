@@ -5,7 +5,7 @@ module Api
     class TransfersController < Api::BaseController
       def create
         result = TransferService.transfer_by_email(from_user: current_user, **transfer_params)
-        render_result(result, :created, :unprocessable_entity)
+        render_result(result, :created, :unprocessable_content)
       end
 
       private
