@@ -326,6 +326,7 @@ DEPENDENCIES
   rubocop-rspec (~> 3.2)
   shoulda-matchers (~> 6.4)
   simplecov (~> 0.22)
+  thor (>= 1.4.0)
   tzinfo-data
 
 BUNDLED WITH

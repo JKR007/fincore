@@ -39,3 +39,4 @@ end
 
 # Volunurability updates
 gem "nokogiri", ">= 1.18.9"
+gem "thor", ">= 1.4.0"
