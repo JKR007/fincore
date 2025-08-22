@@ -92,7 +92,7 @@ GEM
       database_cleaner-core (~> 2.0.0)
     database_cleaner-core (2.0.1)
     date (3.4.1)
-    debug (1.10.0)
+    debug (1.11.0)
       irb (~> 1.10)
       reline (>= 0.3.8)
     diff-lcs (1.6.2)
@@ -100,11 +100,11 @@ GEM
     drb (2.2.3)
     erb (5.0.1)
     erubi (1.13.1)
-    factory_bot (6.5.3)
+    factory_bot (6.5.4)
       activesupport (>= 6.1.0)
-    factory_bot_rails (6.4.4)
+    factory_bot_rails (6.5.0)
       factory_bot (~> 6.5)
-      railties (>= 5.0.0)
+      railties (>= 6.1.0)
     faker (3.5.2)
       i18n (>= 1.8.11, < 2)
     globalid (1.2.1)
@@ -117,7 +117,7 @@ GEM
       rdoc (>= 4.0.0)
       reline (>= 0.4.2)
     json (2.12.2)
-    jwt (2.10.1)
+    jwt (3.1.2)
       base64
     language_server-protocol (3.17.0.5)
     lint_roller (1.1.0)
@@ -215,7 +215,7 @@ GEM
       zeitwerk (~> 2.6)
     rainbow (3.1.1)
     rake (13.3.0)
-    rdoc (6.14.0)
+    rdoc (6.14.1)
       erb
       psych (>= 4.0.0)
     regexp_parser (2.10.0)
@@ -312,7 +312,7 @@ DEPENDENCIES
   bundler-audit
   database_cleaner-active_record (~> 2.2)
   debug
-  factory_bot_rails (~> 6.4)
+  factory_bot_rails (~> 6.5)
   faker (~> 3.5)
   jwt
   pg (~> 1.1)
