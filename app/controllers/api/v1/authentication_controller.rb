@@ -7,7 +7,7 @@ module Api
 
       def create
         result = AuthenticationService.register(**registration_params)
-        render_result(result, :created, :unprocessable_entity)
+        render_result(result, :created, :unprocessable_content)
       end
 
       def login

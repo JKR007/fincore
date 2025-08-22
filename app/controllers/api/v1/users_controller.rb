@@ -10,7 +10,7 @@ module Api
 
       def update_balance
         result = BalanceOperationService.process_balance_operation(user: current_user, **balance_params)
-        render_result(result, :ok, :unprocessable_entity)
+        render_result(result, :ok, :unprocessable_content)
       end
 
       private
