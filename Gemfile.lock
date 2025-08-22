@@ -315,6 +315,7 @@ DEPENDENCIES
   factory_bot_rails (~> 6.5)
   faker (~> 3.5)
   jwt
+  nokogiri (>= 1.18.9)
   pg (~> 1.1)
   puma (>= 5.0)
   rack-cors

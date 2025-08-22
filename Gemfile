@@ -36,3 +36,6 @@ group :test do
   gem "shoulda-matchers", "~> 6.4"
   gem "database_cleaner-active_record", "~> 2.2"
 end
+
+# Volunurability updates
+gem "nokogiri", ">= 1.18.9"
