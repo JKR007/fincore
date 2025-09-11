@@ -3,8 +3,8 @@
 source "https://rubygems.org"
 
 # Core Rails
-gem "rails", "~> 8.0.2"
-gem "pg", "~> 1.1"
+gem "rails", ">= 8.0.2.1"
+gem "pg", "~> 1.6"
 gem "puma", ">= 5.0"
 
 # Authentication
@@ -22,7 +22,7 @@ gem "rack-cors"
 
 group :development, :test do
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
-  gem "brakeman", require: false
+  gem "brakeman", ">= 7.1.0", require: false
   gem "rubocop-rails-omakase", require: false
   gem "rubocop-rspec", "~> 3.2", require: false
   gem "rubocop-performance", "~> 1.23", require: false
@@ -36,3 +36,7 @@ group :test do
   gem "shoulda-matchers", "~> 6.4"
   gem "database_cleaner-active_record", "~> 2.2"
 end
+
+# Volunurability updates
+gem "nokogiri", ">= 1.18.9"
+gem "thor", ">= 1.4.0"
