@@ -22,7 +22,7 @@ gem "rack-cors"
 
 group :development, :test do
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
-  gem "brakeman", ">= 7.1.2", require: false
+  gem "brakeman", "~> 8.0", require: false
   gem "rubocop-rails-omakase", require: false
   gem "rubocop-rspec", "~> 3.7", require: false
   gem "rubocop-performance", "~> 1.26", require: false
