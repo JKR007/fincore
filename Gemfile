@@ -22,7 +22,7 @@ gem "rack-cors"
 
 group :development, :test do
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
-  gem "brakeman", ">= 7.1.0", require: false
+  gem "brakeman", "~> 8.0", require: false
   gem "rubocop-rails-omakase", require: false
   gem "rubocop-rspec", "~> 3.7", require: false
   gem "rubocop-performance", "~> 1.26", require: false
@@ -33,7 +33,7 @@ end
 
 group :test do
   gem "simplecov", "~> 0.22", require: false
-  gem "shoulda-matchers", "~> 6.4"
+  gem "shoulda-matchers", "~> 7.0"
   gem "database_cleaner-active_record", "~> 2.2"
 end
 
