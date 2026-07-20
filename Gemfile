@@ -32,7 +32,7 @@ group :development, :test do
 end
 
 group :test do
-  gem "simplecov", "~> 0.22", require: false
+  gem "simplecov", "~> 1.0", require: false
   gem "shoulda-matchers", "~> 7.0"
   gem "database_cleaner-active_record", "~> 2.2"
 end
